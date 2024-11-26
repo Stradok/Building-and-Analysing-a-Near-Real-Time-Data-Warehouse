@@ -11,69 +11,79 @@ The primary components of this project include:
 2. **ETL Process:** A Java program to integrate and transform data from the source database into the target warehouse.
 3. **Data Analysis:** SQL queries for business insights.
 
----
 
-## **Project Structure**
+## Table Definitions
 
-### **1. Source Database Schema (`project`)**
-
-The source database contains the following tables:
-
-- **`Customer`**:
-  - Stores customer information such as name and gender.
-  - Primary Key: `customer_id`.
-
-- **`Product`**:
-  - Contains product details, including price, supplier, and store information.
-  - Primary Key: `productID`.
-
-- **`TimeDimension`**:
-  - Captures temporal details for transactions.
-  - Primary Key: `time_id`.
-
-- **`TransactionFact`**:
-  - A fact table storing transactional data, including the quantity of products ordered and related IDs.
-  - Primary Key: `order_id`.
-
-### **2. Data Warehouse Schema (`dw`)**
-
-The enriched data warehouse table consolidates source data into a single table (`EnrichedTransactionFact`) for efficient querying and analysis. Key features include:
-- Transactional details (e.g., `order_id`, `quantity_ordered`, `total_sale`).
-- Dimensional attributes (e.g., `productName`, `customer_name`, `supplierName`).
-- Temporal fields (e.g., `order_date`, `day_of_week`, `month`, `quarter`, `year`).
-
----
-
-## **ETL Process**
-
-The ETL (Extract, Transform, Load) workflow is implemented in **Java**. Key components include:
-
-### **Java Program (ETL Pipeline)**
-- **Extraction:** Data is streamed from the source database using JDBC.
-- **Transformation:** Data from multiple tables is joined and enriched (e.g., calculating total sales from `quantity_ordered` and `productPrice`).
-- **Loading:** Transformed data is inserted into the `EnrichedTransactionFact` table in the data warehouse.
-
-### **Java Implementation Details**
-- **Technologies:**
-  - Java JDK 22
-  - Eclipse IDE 9.0.0
-  - MySQL JDBC Connector
-- **Classes and Methods:**
-  - **Transaction, Product, Customer, Time:** Classes to hold extracted data.
-  - **StreamThread:** Reads transactional data.
-  - **MasterDataThread:** Reads dimensional data (Product, Customer, Time).
-  - **populateDataWarehouse:** Combines data and inserts enriched records into the data warehouse.
-
----
-
-## **Data Loading Process**
-
-The source tables are populated using the `LOAD DATA INFILE` command from CSV files. Sample loading scripts include:
+### Project Database
 ```sql
-LOAD DATA INFILE 'path/to/customers.csv'
-INTO TABLE Customer
-FIELDS TERMINATED BY ',' 
-ENCLOSED BY '"' 
-LINES TERMINATED BY '\n'
-IGNORE 1 ROWS
-(customer_id, customer_name, gender);
+CREATE DATABASE IF NOT EXISTS project;
+USE project;
+
+CREATE TABLE Customer (
+    customer_id INT PRIMARY KEY,
+    customer_name VARCHAR(255),
+    gender VARCHAR(50)
+);
+
+CREATE TABLE Product (
+    productID INT PRIMARY KEY,
+    productName VARCHAR(255),
+    productPrice DECIMAL(10, 2),
+    supplierID INT,
+    supplierName VARCHAR(255),
+    storeID INT,
+    storeName VARCHAR(255)
+);
+
+CREATE TABLE TimeDimension (
+    time_id INT PRIMARY KEY,
+    order_date DATETIME,
+    day_of_week VARCHAR(50),
+    month INT,
+    year INT,
+    quarter INT
+);
+
+CREATE TABLE TransactionFact (
+    order_id INT PRIMARY KEY,
+    order_date DATETIME,
+    productID INT,
+    quantity_ordered INT,
+    customer_id INT,
+    time_id INT,
+    FOREIGN KEY (productID) REFERENCES Product(productID),
+    FOREIGN KEY (customer_id) REFERENCES Customer(customer_id),
+    FOREIGN KEY (time_id) REFERENCES TimeDimension(time_id)
+);
+```
+
+### Data Warehouse
+```sql
+CREATE DATABASE IF NOT EXISTS dw;
+USE dw;
+
+CREATE TABLE EnrichedTransactionFact (
+    enriched_id INT AUTO_INCREMENT PRIMARY KEY,
+    order_id INT NOT NULL,
+    customer_id INT NOT NULL,
+    productID INT NOT NULL,
+    time_id INT NOT NULL,
+    quantity_ordered INT NOT NULL,
+    total_sale DECIMAL(15, 2) NOT NULL,
+    productPrice DECIMAL(10, 2),
+    productName VARCHAR(255),
+    supplierID INT,
+    supplierName VARCHAR(255),
+    storeID INT,
+    storeName VARCHAR(255),
+    customer_name VARCHAR(255),
+    gender VARCHAR(50),
+    order_date DATETIME,
+    day_of_week VARCHAR(50),
+    month INT,
+    year INT,
+    quarter INT,
+    FOREIGN KEY (customer_id) REFERENCES project.Customer(customer_id),
+    FOREIGN KEY (productID) REFERENCES project.Product(productID)
+);
+```
