@@ -12,11 +12,11 @@ public class CombinedETL {
     // Database connection details
     static String sourceDbName = "project";
     static String sourceDbUsername = "root";
-    static String sourceDbPassword = "amman121";
+    static String sourceDbPassword = "password";
 
     static String targetDbName = "dw";
     static String targetDbUsername = "root";
-    static String targetDbPassword = "amman121";
+    static String targetDbPassword = "password";
 
     // Data structures for streaming and master data
     //custom classes to represent tge datga entries in the database for fetching 
